@@ -1,0 +1,233 @@
+#include <stdio.h>
+#include <conio.h>
+#include <float.h>
+
+#include <assert.h>
+#include <math.h>
+#include "ssHFwithStruct.h"
+
+int main(void)
+{
+    TestData data = { .a = 0, .b = 0, .c = 0, .x1 = 0, .x2 = 0, .nRoots = 0 };
+    printf("you want to test the system?\nif yea enter 1\nif no enter 0\n");
+    int UserSelection = InputSelection();
+    RunTest(UserSelection);
+    printf("enter coeff\n");
+
+    printf("a, b, c =\n");
+
+    InputNumbers (&data);
+
+    data.nRoots = SolveEquation(&data);
+    if (isEqual(data.x1, 0))
+        {
+        data.x1 = 0;
+        }
+    PrintRoots(data);
+}
+
+//---------------------------------------------
+//!
+//!
+//!
+//!
+//!
+//!
+//!
+//!
+//---------------------------------------------
+void PrintRoots(TestData data)
+{
+    switch (data.nRoots)
+    {
+        case SS_ONE_ROOTS:
+            printf ("x = %lg\n", data.x1);
+            break;
+        case SS_TWO_ROOTS:
+            printf ("x1 = %lg  x2= %lg\n", data.x1, data.x2);
+            break;
+        case SS_INF_ROOTS:
+            printf ("inf");
+            break;
+        case SS_NO_ROOTS:
+            printf ("sol is not");
+            break;
+        default:
+            printf ("fail: in function %s:%d\n", __PRETTY_FUNCTION__, __LINE__);
+    }
+}
+
+
+int SolveEquation ( TestData* data )
+{
+    assert (data != NULL);
+
+
+    if (isEqual( (*data).a, 0 ))
+    {
+        return SolveLinear(data);
+    }
+
+    else
+    {
+        return SolveSquare ( data );
+    }
+
+}
+
+NumOfRoots SolveLinear ( TestData* data )
+{
+    assert (data != NULL);
+    if (fabs((*data).b) < DBL_EPSILON)
+    {
+        if ((fabs((*data).c)) > DBL_EPSILON)
+        {
+            return SS_NO_ROOTS;
+        }
+        else
+        {
+            return SS_INF_ROOTS;
+        }
+    }
+    else
+    {
+        ((*data).x1) = -((*data).c) / ((*data).b);
+        return SS_ONE_ROOTS;
+    }
+
+}
+
+NumOfRoots SolveSquare (TestData* data )
+{
+    assert (data != NULL);
+
+    double d = ((*data).b) * (data -> b) - 4 * (data -> a) * (data -> c) ;
+    double sqrt_d = sqrt ( d );
+
+    if (isEqual(d,0))
+    {
+        (data -> x1) = (data -> x2) = -(data -> b) / (2 * (data -> a));
+        return SS_ONE_ROOTS;
+    }
+
+    else if (d > DBL_EPSILON)
+    {
+        (data -> x1) = (-(data -> b) + sqrt_d) / (2 * (data -> a));
+        (data -> x2) = (-(data -> b) - sqrt_d) / (2 * (data -> a));
+        return SS_TWO_ROOTS;
+    }
+
+    else if (d < - DBL_EPSILON)
+    {
+        return SS_NO_ROOTS;
+    }
+    else
+    {
+    return SS_NO_ROOTS;
+    }
+}
+
+int TestSolveEquation(TestData data1)
+{
+    int numberTest;
+    TestData data { .a = 0, .b = 0, .c = 0, .x1 = 0, .x2 = 0, .nRoots = 0 };
+    data.a = data1.a;
+    data.b = data1.b;
+    data.c = data1.c;
+    data.nRoots = SolveEquation( &data );
+    if ( !(isEqual( data1.x1, data.x1)) || !(isEqual( data1.x2, data.x2)) || data1.nRoots != data.nRoots)
+    {
+        printf("\033[1;31mFAILED:     x1=%lg    x2=%lg    nRoots=%d\n"
+                         "EXECTED: x1ref=%lg x2ref=%lg nRootsRef=%d\n \033[0m",
+        data.x1, data.x2, data.nRoots, data1.x1, data1.x2, data1.nRoots);
+        numberTest = 0;
+    }
+
+    else
+    {
+        printf("\033[32m Test is OK\n\033[0m");
+        numberTest = 1;
+    }
+    return numberTest;
+
+}
+int TestAll()
+{
+    int numSuccess = 0;
+
+    numSuccess += TestSolveEquation({0,  0,  0,   0,   0, SS_INF_ROOTS});
+    numSuccess += TestSolveEquation({0,  0,  4,   0,   0, SS_NO_ROOTS });
+    numSuccess += TestSolveEquation({1,  1,  1,   0,   0, SS_NO_ROOTS });
+    numSuccess += TestSolveEquation({0,  2, -8,   4,   0, SS_ONE_ROOTS});
+    numSuccess += TestSolveEquation({1,  2,  1,  -1,  -1, SS_ONE_ROOTS});
+    numSuccess += TestSolveEquation({2,  5,  2, -0.5, -2, SS_TWO_ROOTS});
+    numSuccess += TestSolveEquation({1, -5,  6,   3,   2, SS_TWO_ROOTS});
+    numSuccess += TestSolveEquation({1,  8,  15, -3,  -5, SS_TWO_ROOTS});
+    return numSuccess;
+}
+int InputSelection()
+{
+    int UserSelection = 0;
+    while((scanf("%d", &UserSelection)) != 1)
+    {
+        ClearBuffer();
+        printf("ENTER 1 OR 0 NOT OTHER!!!!!!!!\n");
+    }
+    if (!(UserSelection == 1 || UserSelection == 0))
+    {
+        printf("ENTER 1 OR 0 NOT OTHER!!!!!!!!\n");
+        InputSelection();
+    }
+    return UserSelection;
+}
+int RunTest(int UserSelection)
+{
+    if (UserSelection == 1 )
+    {
+        printf ("%d successful test of 8\n", TestAll());
+        return 1;
+    }
+
+    else
+    {
+        return 0;
+    }
+}
+int isEqual(double arg1, double arg2)
+{
+    double modul = fabs( fabs(arg1) - fabs(arg2));
+    if ( modul < DBL_EPSILON )
+    {
+        return 1;
+    }
+
+    else
+    {
+        return 0;
+    }
+
+}
+
+void InputNumbers (TestData* data)
+{
+    assert (data != NULL);
+
+    while (scanf ("%lg %lg %lg", &(data -> a), &(data -> b), &(data -> c)) < 3)
+    {
+        ClearBuffer ();
+        printf ("Enter right numbers \n");
+    }
+
+    if (!isfinite ((data -> a)) || !isfinite ((data -> b)) || !isfinite ((data -> c)))
+    {
+        printf ("enter right numbers \n");
+        InputNumbers (data);
+    }
+
+}
+void ClearBuffer ()
+{
+    while (getchar() != '\n')
+        ;
+}
+
